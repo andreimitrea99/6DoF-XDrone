@@ -1,86 +1,56 @@
-                                                                                                                                                                                                           %% ===============================
+%% ===============================
 %% MAIN.M - 6DoF SIMULATION
 %% ===============================
-close all
-clear, clc
 
-%% --- Global Data Storage Declaration ---
-global SIM_DATA; 
-% Initialize struct to store data
-SIM_DATA = struct('t', [], 'V', [], 'V_no_sdslip', [], ...
-    ... % Velocities in no-sideslip rotated frame
-    'u_no_sdslip', [], 'v_no_sdslip', [], 'w_no_sdslip', [], ...
-    ... % Aero Forces in Body Frame
-    'Fx_aero_b', [], 'Fy_aero_b', [], 'Fz_aero_b', [], ...
-    ... % Aero Forces in wind frame and rotated by alpha_equivalent for no-sideslip frame
-    'Lift_sdslip', [], 'Drag_sdslip', [], 'Normal_force', [], 'Axial_force', [], ...
-    ... % Forces in body frame (complete, including gravity)
-    'Fx_b', [], 'Fy_b', [], 'Fz_b', [], ...
-    ... % Total Moments in Body Frame
-    'Mx_b', [], 'My_b', [], 'Mz_b', [], ...
-    ... % Moments computed in the no-sideslip frame (x and z components should be zero)
-    'Mx_no_sdslip', [], 'My_no_sdslip', [], 'Mz_no_sdslip', [], ...
-    ... % Aero oefficients
-    'CL', [], 'CD', [], 'Cm', [], ...
-    ... % Angles / derived angles
-    'alpha', [], 'beta', [], 'no_sdslip_angle', [], 'alpha_equivalent', [], ...
-    ... % Centre of Pressure fraction location
-    'COP_fraction', [] ...
-);
+close all; clear; clc;
+globalData % load the global struct for logging data from utils_calc folder
 
-%% --- INITIALIZATION ---
-% =================================
-[params,initial] = xzylo_testing();
-% =================================
+%% ------------- INITIALIZATION -------------------------------------------
+% Select vehicle configuration
+vehicle_config = @original_xzylo;  % Put the name of the body_file after @
 
-x0 = [initial.v0 initial.omega0 initial.quat0 initial.pos0]';
-params.x0 = x0;
+% Load configuration
+% ============================================
+[sim.prop, sim.aero, sim.initial] = vehicle_config(); %properties, aerodynamics, initial conditions
+% =============================================
+
+x0 = [sim.initial.v0 sim.initial.omega0 sim.initial.quat0 sim.initial.pos0]';
+sim.initial.x0 = x0;
 
 % --- Simulation setup ---
-tspan = [0 initial.tf];  % total time
+tspan = [0, sim.initial.tf];  % total time
 
-% --- Plotting setup ---
-params.radius_visualization = 5;
-params.live_plotting_residuals = false; 
+%% ------------- SIMULATION HEADER ----------------------------------------
+fprintf('==================================\n')
+fprintf('   ANNULAR WING 6DOF SIMULATION\n')
+fprintf('==================================\n')
+fprintf('Vehicle configuration: %s\n', func2str(vehicle_config))
+fprintf('----------------------------------\n')
+fprintf('Launch Angle: %.1f°\n', sim.initial.launch_angle)
+fprintf('Launch AoA: %.1f°\n', sim.initial.AoA)
+fprintf('Launch Velocity: %.1f m/s\n', sim.initial.V_mag)
+fprintf('Launch Rotational Speed: %.1f Hz\n', sim.initial.Omega_mag)
+fprintf('----------------------------------\n')
+fprintf('Trim AoA: %.2f°\n', rad2deg(sim.prop.alpha_trim))
+fprintf('Trim Velocity: %.2f m/s\n', sim.prop.V_trim)
+fprintf('Trim Thrust: %.3f N\n', sim.prop.Thrust_req)
+fprintf('----------------------------------\n\n')
 
-%% --- INTEGRATION WITH LIVE PLOT ---
-
-if params.live_plotting_residuals == false
-    % Simple plotting without residuals (faster)
-    options = odeset('RelTol',1e-6,'AbsTol',1e-9,'Events', @hit_ground);
-else
-    % Plotting with residuals of the x states (slow)
-    fig = figure('Name','Live dx evolution','NumberTitle','off');
-    tiledlayout(fig, 4, 4, 'TileSpacing','tight'); 
-    sgtitle('Time evolution of dx components')
-    
-    % Store parameters & plot handles for access inside OutputFcn
-    setappdata(fig, 'params', params);
-    setappdata(fig, 'x0', x0);
-    
-    % Create line objects for speed (no replotting overhead)
-    for i = 1:13
-        ax(i) = nexttile;
-        hold(ax(i), 'on');
-        title(ax(i), sprintf('dx(%d)', i));
-        xlabel(ax(i), 't [s]');
-        ylabel(ax(i), sprintf('dx_%d', i));
-        grid(ax(i), 'on');
-        h(i) = plot(ax(i), NaN, NaN, 'b.');
-    end
-    
-    setappdata(fig, 'h', h);
-    setappdata(fig, 'ax', ax);
-    
-    options = odeset('RelTol',1e-6,'AbsTol',1e-9,'Events',@hit_ground,...
-        'OutputFcn', @(t,y,flag) live_dx_plot(t,y,flag,fig));
-end
+%% ------------- PLOTTING OPTIONS -----------------------------------------
+sim.options.propeller_on = false;
+sim.options.test_plotting = false;
+sim.options.body_plotting = false;
+sim.options.non_rotating_plotting = false;
+sim.options.live_plotting_residuals = false; 
+sim.options.radius_visualization = 1;
 
 % ========================= INTEGRATOR ===============================
-[t, x] = ode45(@(t,x) sixdof_wrapper(t,x,params), tspan, x0, options);
+options_integration = options_premaker(sim.options.live_plotting_residuals, sim);
+
+[t, x] = ode45(@(t,x) sixDoF_wrapper(t,x,sim), tspan, x0, options_integration);
 % ====================================================================
 
-%% POST-PROCESSING
-plot_results(t,x,params);
-plot_animation(t, x, params);
-%visualization_XZylo_orientation(params);
+%% ------------- POST-PROCESSING ------------------------------------------
+plot_results(t, x, sim);
+plot_animation(t, x, sim);
+% visualization_XZylo_orientation(sim);

@@ -1,3 +1,5 @@
+clc, clear
+
 % Input angles in degrees
 beta_deg = 1;
 alpha_deg = 1;

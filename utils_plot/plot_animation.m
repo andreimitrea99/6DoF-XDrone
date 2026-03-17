@@ -1,4 +1,4 @@
-function plot_animation(t, x, params)
+function plot_animation(t, x, sim)
 % PLOT_ANIMATION 6DoF Trajectory Animation (NED)
 % Features:
 %   - Precomputes rotation matrices for speed
@@ -18,7 +18,7 @@ if num_steps == 0
 end
 
 %% --- 2. Interpolation to uniform time (24 FPS) ---
-fps = 25;
+fps = 50;
 t_uniform = linspace(t(1), t(end), round(fps*(t(end)-t(1))));
 
 % Interpolate positions and quaternions
@@ -32,7 +32,7 @@ frame_skip = 1;  % e.g., 1 = no skip, 2 = skip every other frame
 skip_indices = 1:frame_skip:num_steps;
 
 %% --- 4. Body visualization parameters ---
-r_magnified = params.radius_visualization;
+r_magnified = sim.options.radius_visualization;
 
 % --- Reduced circle points for speed ---
 num_circle_pts = 25; % you can tweak this
@@ -40,13 +40,13 @@ theta = linspace(0, 2*pi, num_circle_pts);
 ring_pts_b_frame = r_magnified * [zeros(1,num_circle_pts); cos(theta); sin(theta)];
 
 % Blue/red lines along body z-axis
-blue_line_b_vector = [[0;0;0], [0;0;r_magnified]];
-red_line_b_vector  = [[0;0;0], [0;0;-r_magnified]];
+blue_line_b_vector = [[0;0;0], [0;0;  r_magnified]];
+red_line_b_vector  = [[0;0;0], [0;0; -r_magnified]];
 
 %% --- 5. Precompute rotation matrices for speed ---
 R_all = cell(num_steps,1);
 for i = 1:num_steps
-    R_all{i} = rotQuat(quat(i,:));
+    R_all{i} = quatRotMat(quat(i,:));
 end
 
 %% --- 6. Figure Setup ---
@@ -85,7 +85,7 @@ ringPts_i = R_init * ring_pts_b_frame + pos_i(1,:)';
 ring_h = fill3(ax_anim, ringPts_i(1,:), ringPts_i(2,:), ringPts_i(3,:), ...
                'y','FaceAlpha',0.5,'EdgeColor','none','DisplayName','Body Disk');
 
-marker_h = plot3(ax_anim, NaN, NaN, NaN, 'mo','MarkerFaceColor','m','MarkerSize', 1.5*r_magnified,'DisplayName','Body CG');
+marker_h = plot3(ax_anim, NaN, NaN, NaN, 'mo','MarkerFaceColor','m','MarkerSize', r_magnified*3,'DisplayName','Body CG');
 
 blue_line_i_init = R_init * blue_line_b_vector + pos_i(1,:)';
 blue_line_h = plot3(ax_anim, blue_line_i_init(1,:), blue_line_i_init(2,:), ...

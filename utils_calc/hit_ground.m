@@ -1,4 +1,4 @@
-function [value, isterminal, direction] = hit_ground(t,x)
+function [value_z, isterminal, direction] = hit_ground(~,x)
 % Stops the simulation when z position <= 0
 %
 % Inputs:
@@ -10,8 +10,8 @@ function [value, isterminal, direction] = hit_ground(t,x)
 %   isterminal - 1 to stop the integrator
 %   direction - 0 means all zero-crossings
 
-z = x(13);   % z position in inertial frame
-value = z;   % integration stops when value = 0
+value_z = x(13);   % z position in inertial frame; integration stops when value_z = 0
 isterminal = 1;  % stop the integration
 direction = 1;  % only detect decreasing zeros (falling through z=0)
+
 end

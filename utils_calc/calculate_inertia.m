@@ -81,4 +81,5 @@ function results = calculate_inertia(m1, Ro1, Ri1, L1, x1, m2, Ro2, Ri2, L2, x2)
     results.M_total = M_total;
     results.r_cg = r_cg;
     results.I_total = I_total;
+    
 end

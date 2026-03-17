@@ -61,7 +61,7 @@ function visualization_XZylo_orientation(params)
                        'Position', [130 70 300 20], 'Callback', @updateVisualization);
     h_time_val = uicontrol('Style', 'edit', 'String', '1', ...
                            'Position', [450 70 60 25], 'Callback', @updateTimeEdit);
-    h_theta_checkbox = uicontrol('Style', 'checkbox', 'String', 'Include θ rotation', ...
+    h_no_sdslip_angle_checkbox = uicontrol('Style', 'checkbox', 'String', 'Include θ rotation', ...
                                  'Value', 1, ...
                                  'Position', [30 40 200 20], ...
                                  'Callback', @updateVisualization);
@@ -84,10 +84,10 @@ function visualization_XZylo_orientation(params)
         % Angles
         alpha = SIM_DATA.alpha(idx);
         beta = SIM_DATA.beta(idx);
-        theta = SIM_DATA.theta(idx);
-        alpha_total = SIM_DATA.alpha_total(idx);
+        no_sdslip_angle = SIM_DATA.no_sdslip_angle(idx);
+        alpha_equivalent = SIM_DATA.alpha_equivalent(idx);
 
-        include_theta = get(h_theta_checkbox, 'Value');
+        include_no_sdslip_angle = get(h_no_sdslip_angle_checkbox, 'Value');
 
         % --- Rotation matrices ---
         Ry = [cos(alpha), 0, -sin(alpha);
@@ -96,10 +96,10 @@ function visualization_XZylo_orientation(params)
         Rz = [cos(beta), sin(beta), 0;
               -sin(beta),  cos(beta), 0;
               0, 0, 1];
-        if include_theta
+        if include_no_sdslip_angle
             Rx = [1, 0, 0;
-                  0, cos(theta), -sin(theta);
-                  0, sin(theta), cos(theta)];
+                  0, cos(no_sdslip_angle), -sin(no_sdslip_angle);
+                  0, sin(no_sdslip_angle), cos(no_sdslip_angle)];
             R_total = Rz * Ry * Rx;
         else
             R_total = Rz * Ry;
@@ -118,8 +118,8 @@ function visualization_XZylo_orientation(params)
         set(h_axis, 'XData', axis_rot(1,:), 'YData', axis_rot(2,:), 'ZData', axis_rot(3,:));
 
         % --- Aerodynamic forces in θ frame ---
-        CL = params.CL(alpha_total);
-        CD = params.CD(alpha_total);
+        CL = params.CL(alpha_equivalent);
+        CD = params.CD(alpha_equivalent);
         qbar = 0.5 * params.rho * SIM_DATA.V(idx)^2;
 
         F_L = qbar * params.S * [0; 0; CL];
@@ -138,7 +138,7 @@ function visualization_XZylo_orientation(params)
 
         % --- Update text display ---
         set(h_text, 'String', sprintf('t=%d | α=%.2f° | β=%.2f° | θ=%.2f° | α_{total}=%.2f°', ...
-               idx, rad2deg(alpha), rad2deg(beta), rad2deg(theta), rad2deg(alpha_total)));
+               idx, rad2deg(alpha), rad2deg(beta), rad2deg(no_sdslip_angle), rad2deg(alpha_equivalent)));
     end
 
     % === Time edit box callback ===

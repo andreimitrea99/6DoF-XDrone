@@ -1,4 +1,8 @@
-combinedRotation_funct(10,-10)
+clc, clear
+
+alpha = 10; %degrees
+beta = -10; %degrees
+combinedRotation_funct(alpha,beta)
 
 function combinedRotation_funct(alpha_deg, beta_deg)
 % plotCombinedRotation Calculates and plots the combined rotation of a sphere
